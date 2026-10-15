@@ -3,6 +3,7 @@ package com.mehbur.deathnote;
 import com.mehbur.deathnote.config.DeathNoteConfig;
 import com.mehbur.deathnote.network.DeathNoteServerHandler;
 import com.mehbur.deathnote.registry.ModComponents;
+import com.mehbur.deathnote.registry.ModCreativeTab;
 import com.mehbur.deathnote.registry.ModRecipes;
 import net.fabricmc.api.ModInitializer;
 import net.minecraft.resources.Identifier;
@@ -22,6 +23,7 @@ public final class DeathNoteMod implements ModInitializer {
 		DeathNoteConfig.load();
 		ModComponents.init();
 		ModRecipes.init();
+		ModCreativeTab.init();
 		DeathNoteServerHandler.register();
 		LOGGER.info("Death Note initialized.");
 	}

@@ -8,6 +8,7 @@
 		"Mehbur07"
 	],
 	"license": "All-Rights-Reserved",
+	"icon": "assets/deathnote/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [

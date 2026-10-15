@@ -4,11 +4,14 @@ import com.mehbur.deathnote.DeathNoteMod;
 import com.mehbur.deathnote.registry.ModComponents;
 import com.mehbur.deathnote.registry.ModEnchantments;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
 
 /**
  * Helpers for Death Note items: a vanilla feather or writable book carrying the Death Note enchantment.
@@ -52,6 +55,14 @@ public final class DeathNoteItems {
 		stack.set(DataComponents.MAX_DAMAGE, maxUses);
 		stack.set(DataComponents.DAMAGE, 0);
 		stack.set(ModComponents.USES_REMAINING, maxUses);
+	}
+
+	/** Builds a finished Death Note from a plain feather or writable book (used by the creative tab). */
+	public static ItemStack create(Item base, Holder<Enchantment> deathNote, int maxUses) {
+		ItemStack stack = new ItemStack(base);
+		stack.enchant(deathNote, 1);
+		applyDeathNote(stack, maxUses);
+		return stack;
 	}
 
 	public static int getUsesRemaining(ItemStack stack) {
