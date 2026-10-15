@@ -3,7 +3,10 @@
 	"package": "com.mehbur.deathnote.mixin",
 	"compatibilityLevel": "JAVA_25",
 	"mixins": [
-		"CrafterBlockMixin"
+		"AnvilMenuMixin",
+		"CrafterBlockMixin",
+		"GrindstoneMenuMixin",
+		"RepairItemRecipeMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
