@@ -1,0 +1,27 @@
+{
+  "enchantment.deathnote.death_note": "Death Note",
+
+  "death.attack.deathnote": "%1$s was killed by the Death Note",
+  "death.attack.deathnote.player": "%1$s was killed by the Death Note",
+
+  "item.deathnote.death_note_book": "Death Note",
+  "item.deathnote.death_note_quill": "Death Note Quill",
+  "itemGroup.deathnote": "Death Note",
+
+  "deathnote.tooltip.uses": "Uses left: %s/%s",
+
+  "deathnote.screen.title": "Death Note",
+  "deathnote.screen.prompt": "Write a name...",
+  "deathnote.screen.write": "Write",
+  "deathnote.screen.cancel": "Cancel",
+
+  "deathnote.message.player_not_found": "Player not found: %s",
+  "deathnote.message.invalid_name": "Invalid name.",
+  "deathnote.message.not_enough_levels": "You need %s levels to use the Death Note.",
+  "deathnote.message.cooldown": "Wait %s seconds before using the Death Note again.",
+  "deathnote.message.self": "You cannot write your own name in the Death Note.",
+  "deathnote.message.protected": "This player is protected from the Death Note.",
+  "deathnote.message.not_holding": "You are not holding a Death Note.",
+  "deathnote.message.success": "You wrote %s in the Death Note.",
+  "deathnote.message.broken": "The Death Note's power is spent and it crumbles away."
+}

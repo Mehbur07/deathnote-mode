@@ -1,0 +1,21 @@
+{
+  "anvil_cost": 8,
+  "description": {
+    "translate": "enchantment.deathnote.death_note"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 50,
+    "per_level_above_first": 0
+  },
+  "max_level": 1,
+  "min_cost": {
+    "base": 50,
+    "per_level_above_first": 0
+  },
+  "slots": [
+    "mainhand"
+  ],
+  "supported_items": "#deathnote:enchantable/death_note",
+  "weight": 1
+}

@@ -1,0 +1,27 @@
+{
+  "enchantment.deathnote.death_note": "Death Note",
+
+  "death.attack.deathnote": "%1$s Death Note tarafından öldürüldü",
+  "death.attack.deathnote.player": "%1$s Death Note tarafından öldürüldü",
+
+  "item.deathnote.death_note_book": "Death Note",
+  "item.deathnote.death_note_quill": "Death Note Kalemi",
+  "itemGroup.deathnote": "Death Note",
+
+  "deathnote.tooltip.uses": "Kalan kullanım: %s/%s",
+
+  "deathnote.screen.title": "Death Note",
+  "deathnote.screen.prompt": "Bir isim yaz...",
+  "deathnote.screen.write": "Yaz",
+  "deathnote.screen.cancel": "İptal",
+
+  "deathnote.message.player_not_found": "Oyuncu bulunamadı: %s",
+  "deathnote.message.invalid_name": "Geçersiz isim.",
+  "deathnote.message.not_enough_levels": "Death Note kullanmak için %s seviye gerekiyor.",
+  "deathnote.message.cooldown": "Death Note'u tekrar kullanmak için %s saniye bekle.",
+  "deathnote.message.self": "Kendi ismini Death Note'a yazamazsın.",
+  "deathnote.message.protected": "Bu oyuncu Death Note'tan korunuyor.",
+  "deathnote.message.not_holding": "Elinde bir Death Note yok.",
+  "deathnote.message.success": "%s adını Death Note'a yazdın.",
+  "deathnote.message.broken": "Death Note'un gücü tükendi ve parçalandı."
+}
