@@ -1,0 +1,29 @@
+{
+	"schemaVersion": 1,
+	"id": "deathnote",
+	"version": "${version}",
+	"name": "Death Note",
+	"description": "Adds the Death Note enchantment for feathers and books. Write a player's name to strike them down.",
+	"authors": [
+		"Mehbur07"
+	],
+	"license": "All-Rights-Reserved",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.mehbur.deathnote.DeathNoteMod"
+		],
+		"client": [
+			"com.mehbur.deathnote.client.DeathNoteClient"
+		]
+	},
+	"mixins": [
+		"deathnote.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.2",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

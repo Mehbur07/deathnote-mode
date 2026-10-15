@@ -1,0 +1,30 @@
+# Gradle
+.gradle/
+build/
+out/
+classes/
+
+# Loom run directories (contain local worlds, logs, options)
+run/
+runs/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+bin/
+.settings/
+.project
+.classpath
+
+# OS / misc
+*.log
+Thumbs.db
+.DS_Store
+
+# Secrets (never commit)
+.env
+*.env
+secrets.properties
