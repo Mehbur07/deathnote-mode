@@ -38,6 +38,7 @@ import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.CrafterBlock;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.List;
 import java.util.Optional;
@@ -95,9 +96,20 @@ public final class DeathNoteGameTests {
 		return menu.getSlot(GrindstoneMenu.RESULT_SLOT).getItem();
 	}
 
+	/**
+	 * Mock players log in at the world origin, whose chunk may not be loaded on the randomly placed test
+	 * server. Moving them into the test area keeps everything they cause (e.g. the lightning bolt) in a
+	 * loaded chunk, so entity checks are deterministic.
+	 */
+	private static ServerPlayer mockPlayerInTestArea(GameTestHelper helper, double x, double z) {
+		ServerPlayer player = helper.makeMockServerPlayerInLevel();
+		player.snapTo(helper.absoluteVec(new Vec3(x, 1.0, z)));
+		return player;
+	}
+
 	/** A survival writer holding a fresh Death Note quill. */
 	private static ServerPlayer writer(GameTestHelper helper, int levels) {
-		ServerPlayer writer = helper.makeMockServerPlayerInLevel();
+		ServerPlayer writer = mockPlayerInTestArea(helper, 0.5, 0.5);
 		writer.setGameMode(GameType.SURVIVAL);
 		writer.getAbilities().instabuild = false;
 		writer.experienceLevel = levels;
@@ -106,7 +118,7 @@ public final class DeathNoteGameTests {
 	}
 
 	private static ServerPlayer target(GameTestHelper helper) {
-		return helper.makeMockServerPlayerInLevel();
+		return mockPlayerInTestArea(helper, 2.5, 2.5);
 	}
 
 	private static Outcome write(GameTestHelper helper, ServerPlayer writer, ServerPlayer target) {
@@ -147,7 +159,7 @@ public final class DeathNoteGameTests {
 		helper.assertTrue(type.is(DamageTypeTags.BYPASSES_SHIELD), "bypasses_shield");
 
 		// The anonymous source must produce the "killed by the Death Note" message.
-		ServerPlayer victim = helper.makeMockServerPlayerInLevel();
+		ServerPlayer victim = target(helper);
 		helper.assertTrue(ModDamageTypes.source(helper.getLevel()).getLocalizedDeathMessage(victim).getContents()
 						instanceof TranslatableContents contents && contents.getKey().equals("death.attack.deathnote"),
 				"death message key must be death.attack.deathnote");
