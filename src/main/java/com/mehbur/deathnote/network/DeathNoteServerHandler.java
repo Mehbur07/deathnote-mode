@@ -138,15 +138,18 @@ public final class DeathNoteServerHandler {
 			return fail(writer, Outcome.PROTECTED, Component.translatable("deathnote.message.protected"));
 		}
 
-		strike(target, config);
 		LAST_USE_TICK.put(writer.getUUID(), now);
 		writer.sendSystemMessage(Component.translatable("deathnote.message.success", target.getName())
 				.withStyle(ChatFormatting.DARK_RED));
 
+		// Pay before the strike: when writers kill themselves, their XP and the Death Note are dropped on
+		// death, so charging afterwards would miss the dropped item and the XP that is dropped with them.
 		if (!free) {
 			writer.giveExperienceLevels(-config.xpCost);
-			consumeUse(writer, hand, stack);
+			consumeUse(writer, stack);
 		}
+
+		strike(target, config);
 		return Outcome.SUCCESS;
 	}
 
@@ -175,14 +178,14 @@ public final class DeathNoteServerHandler {
 	}
 
 	/** Spends one use; the item breaks when none are left. */
-	private static void consumeUse(ServerPlayer writer, InteractionHand hand, ItemStack stack) {
+	private static void consumeUse(ServerPlayer writer, ItemStack stack) {
 		int remaining = DeathNoteItems.getUsesRemaining(stack) - 1;
 		if (remaining > 0) {
 			DeathNoteItems.setUsesRemaining(stack, remaining);
 			return;
 		}
 
-		writer.setItemInHand(hand, ItemStack.EMPTY);
+		stack.shrink(1);
 		writer.level().playSound(null, writer.blockPosition(), SoundEvents.ITEM_BREAK.value(), SoundSource.PLAYERS, 0.8F, 1.0F);
 		writer.sendSystemMessage(Component.translatable("deathnote.message.broken").withStyle(ChatFormatting.GRAY));
 	}

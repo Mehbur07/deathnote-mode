@@ -30,7 +30,7 @@ public final class DeathNoteConfig {
 	/** Seconds a player must wait between successful uses. */
 	public int cooldownSeconds = 10;
 	/** Whether a player may write their own name. */
-	public boolean allowSelfKill = false;
+	public boolean allowSelfKill = true;
 	/** Whether server operators are immune to the Death Note. */
 	public boolean protectOps = false;
 	/** Visual-only lightning causes no fire and no damage to bystanders. */

@@ -1,5 +1,6 @@
 package com.mehbur.deathnote.test;
 
+import com.mehbur.deathnote.config.DeathNoteConfig;
 import com.mehbur.deathnote.item.DeathNoteItems;
 import com.mehbur.deathnote.network.DeathNoteServerHandler;
 import com.mehbur.deathnote.network.DeathNoteServerHandler.Outcome;
@@ -21,6 +22,7 @@ import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AnvilMenu;
 import net.minecraft.world.inventory.ContainerLevelAccess;
@@ -360,12 +362,41 @@ public final class DeathNoteGameTests {
 	}
 
 	@GameTest
-	public void self_kill_is_rejected(GameTestHelper helper) {
-		ServerPlayer writer = writer(helper, 30);
+	public void self_kill_is_allowed_by_default(GameTestHelper helper) {
+		helper.assertTrue(new DeathNoteConfig().allowSelfKill, "allowSelfKill must default to true");
 
-		helper.assertValueEqual(write(helper, writer, writer), Outcome.SELF, "outcome");
-		helper.assertTrue(writer.isAlive(), "writer must live");
-		helper.assertValueEqual(uses(writer), 30, "uses unchanged");
+		DeathNoteConfig config = DeathNoteConfig.get();
+		boolean previous = config.allowSelfKill;
+		config.allowSelfKill = true;
+		try {
+			ServerPlayer writer = writer(helper, 30);
+			helper.assertValueEqual(write(helper, writer, writer), Outcome.SUCCESS, "outcome");
+			helper.assertTrue(writer.isDeadOrDying(), "writer must be dead");
+
+			// The Death Note is dropped on death and must already carry the spent use.
+			List<ItemEntity> dropped = helper.getLevel().getEntities(EntityTypes.ITEM, writer.getBoundingBox().inflate(4),
+					item -> DeathNoteItems.isDeathNoteItem(item.getItem()));
+			helper.assertValueEqual(dropped.size(), 1, "dropped Death Notes");
+			helper.assertValueEqual(DeathNoteItems.getUsesRemaining(dropped.get(0).getItem()), 29, "uses on the dropped Death Note");
+		} finally {
+			config.allowSelfKill = previous;
+		}
+		helper.succeed();
+	}
+
+	@GameTest
+	public void self_kill_is_rejected_when_disabled(GameTestHelper helper) {
+		DeathNoteConfig config = DeathNoteConfig.get();
+		boolean previous = config.allowSelfKill;
+		config.allowSelfKill = false;
+		try {
+			ServerPlayer writer = writer(helper, 30);
+			helper.assertValueEqual(write(helper, writer, writer), Outcome.SELF, "outcome");
+			helper.assertTrue(writer.isAlive(), "writer must live");
+			helper.assertValueEqual(uses(writer), 30, "uses unchanged");
+		} finally {
+			config.allowSelfKill = previous;
+		}
 		helper.succeed();
 	}
 
