@@ -181,6 +181,146 @@ def make_quill():
     return px
 
 
+# 5x7 pixel font for the 128x128 mod logo.
+LOGO_FONT = {
+    "D": ["11110", "10001", "10001", "10001", "10001", "10001", "11110"],
+    "E": ["11111", "10000", "10000", "11110", "10000", "10000", "11111"],
+    "A": ["01110", "10001", "10001", "11111", "10001", "10001", "10001"],
+    "T": ["11111", "00100", "00100", "00100", "00100", "00100", "00100"],
+    "H": ["10001", "10001", "10001", "11111", "10001", "10001", "10001"],
+    "N": ["10001", "11001", "10101", "10011", "10001", "10001", "10001"],
+    "O": ["01110", "10001", "10001", "10001", "10001", "10001", "01110"],
+}
+LOGO_SIZE = 128
+
+
+def shade(color, delta):
+    r, g, b, a = color
+    return (max(0, min(255, r + delta)), max(0, min(255, g + delta)), max(0, min(255, b + delta)), a)
+
+
+def noise(x, y):
+    """Deterministic per-pixel noise in [-1, 1] for a subtle leather grain."""
+    h = (x * 374761393 + y * 668265263) & 0xFFFFFFFF
+    h = ((h ^ (h >> 13)) * 1274126177) & 0xFFFFFFFF
+    return ((h & 0xFF) / 127.5) - 1.0
+
+
+LOGO_LETTER_GAP = 2
+
+
+def draw_logo_text(px, text, x0, y0, scale, gradient, shadow, shadow_offset):
+    """Draws scaled 5x7 glyphs with a vertical gold gradient (one colour per glyph row) and a drop shadow."""
+    glyph_pixels = []
+    x = x0
+    for ch in text:
+        for row, bits in enumerate(LOGO_FONT[ch]):
+            for col, bit in enumerate(bits):
+                if bit == "1":
+                    for i in range(scale):
+                        for j in range(scale):
+                            glyph_pixels.append((x + col * scale + i, y0 + row * scale + j, row * scale + j))
+        x += 5 * scale + LOGO_LETTER_GAP
+    covered = {(gx, gy) for gx, gy, _ in glyph_pixels}
+    for gx, gy, _ in glyph_pixels:
+        for d in range(1, shadow_offset + 1):
+            p = (gx + d, gy + d)
+            if p not in covered:
+                px[p] = shadow
+    height = 7 * scale
+    for gx, gy, local_y in glyph_pixels:
+        t = local_y / (height - 1)
+        index = min(len(gradient) - 1, int(t * len(gradient)))
+        px[(gx, gy)] = gradient[index]
+
+
+def logo_text_width(text, scale):
+    return len(text) * (5 * scale + LOGO_LETTER_GAP) - LOGO_LETTER_GAP
+
+
+def make_logo():
+    """128x128 mod icon: black leather notebook with a gold frame and a large gold DEATH NOTE title."""
+    px = {}
+    size = LOGO_SIZE
+    cream, cream_line = hexc("#e9dfc6"), hexc("#bcae8f")
+    leather = hexc("#1a1a1c")
+    spine, spine_light, stitch = hexc("#0b0b0c"), hexc("#262629"), hexc("#5a4a22")
+    gold_frame, gold_frame_dark = hexc("#d9a628"), hexc("#7a5810")
+    gradient = [hexc("#fff3b0"), hexc("#ffe066"), hexc("#f7cc3c"), hexc("#efb92a"), hexc("#d99a1c"), hexc("#b97c12")]
+    text_shadow = hexc("#2a1d04")
+
+    cover_l, cover_t, cover_r, cover_b = 8, 8, 117, 115
+
+    # Page block (right and bottom edges) with page lines.
+    for x in range(cover_l + 6, cover_r + 5):
+        for y in range(cover_t + 4, cover_b + 5):
+            on_edge_line = (x > cover_r and y % 3 == 0) or (y > cover_b and x % 3 == 0)
+            px[(x, y)] = cream_line if on_edge_line else cream
+
+    # Leather cover with grain and edge lighting.
+    for x in range(cover_l, cover_r + 1):
+        for y in range(cover_t, cover_b + 1):
+            px[(x, y)] = shade(leather, int(noise(x, y) * 4))
+    for x in range(cover_l, cover_r + 1):
+        px[(x, cover_t)] = shade(leather, 26)
+        px[(x, cover_t + 1)] = shade(leather, 14)
+        px[(x, cover_b)] = shade(leather, -12)
+    for y in range(cover_t, cover_b + 1):
+        px[(cover_r, y)] = shade(leather, -12)
+
+    # Spine with gold stitching.
+    for x in range(cover_l, cover_l + 9):
+        for y in range(cover_t, cover_b + 1):
+            px[(x, y)] = shade(spine, int(noise(x, y) * 3))
+    for y in range(cover_t, cover_b + 1):
+        px[(cover_l + 9, y)] = spine_light
+        if y % 6 < 3:
+            px[(cover_l + 4, y)] = stitch
+
+    # Double gold frame on the cover.
+    fl, ft, fr, fb = cover_l + 12, cover_t + 6, cover_r - 4, cover_b - 6
+    for inset, color in ((0, gold_frame), (1, gold_frame_dark), (3, gold_frame_dark)):
+        for x in range(fl + inset, fr - inset + 1):
+            px[(x, ft + inset)] = color
+            px[(x, fb - inset)] = color
+        for y in range(ft + inset, fb - inset + 1):
+            px[(fl + inset, y)] = color
+            px[(fr - inset, y)] = color
+    # Corner ornaments.
+    for cx, cy in ((fl, ft), (fr, ft), (fl, fb), (fr, fb)):
+        for dx in range(-2, 3):
+            for dy in range(-2, 3):
+                if abs(dx) + abs(dy) <= 2:
+                    px[(cx + dx, cy + dy)] = gold_frame
+
+    # Title, centred inside the frame.
+    scale = 3
+    inner_l, inner_r = fl + 4, fr - 4
+    for text, y in (("DEATH", ft + 18), ("NOTE", ft + 46)):
+        x0 = inner_l + (inner_r - inner_l + 1 - logo_text_width(text, scale)) // 2
+        draw_logo_text(px, text, x0, y, scale, gradient, text_shadow, 2)
+
+    # Ornamental rule with a diamond under the title.
+    rule_y = ft + 80
+    mid = (inner_l + inner_r) // 2
+    for x in range(mid - 26, mid + 27):
+        px[(x, rule_y)] = gold_frame
+    for dx in range(-3, 4):
+        for dy in range(-3, 4):
+            if abs(dx) + abs(dy) <= 3:
+                px[(mid + dx, rule_y + dy)] = gold_frame if abs(dx) + abs(dy) < 3 else gold_frame_dark
+
+    # Dark outline around the whole notebook.
+    filled = set(px)
+    for x in range(size):
+        for y in range(size):
+            if (x, y) in filled:
+                continue
+            if any((x + dx, y + dy) in filled for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                px[(x, y)] = hexc("#050505")
+    return px
+
+
 def upscale(pixels, factor):
     return {(x * factor + i, y * factor + j): c for (x, y), c in pixels.items() for i in range(factor) for j in range(factor)}
 
@@ -193,11 +333,13 @@ def main():
     tex = resources / "assets" / "deathnote" / "textures" / "item"
     write_png(tex / "death_note_book.png", book, SIZE)
     write_png(tex / "death_note_quill.png", quill, SIZE)
-    write_png(resources / "assets" / "deathnote" / "icon.png", upscale(book, 4), SIZE * 4)
+    logo = make_logo()
+    write_png(resources / "assets" / "deathnote" / "icon.png", logo, LOGO_SIZE)
 
     if preview:
         write_png(preview / "book_x8.png", upscale(book, 8), SIZE * 8)
         write_png(preview / "quill_x8.png", upscale(quill, 8), SIZE * 8)
+        write_png(preview / "logo_x3.png", upscale(logo, 3), LOGO_SIZE * 3)
     print("textures written")
 
 
