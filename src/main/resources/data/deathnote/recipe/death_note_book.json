@@ -1,0 +1,11 @@
+{
+  "type": "deathnote:death_note_book",
+  "result": {
+    "id": "minecraft:enchanted_book",
+    "components": {
+      "minecraft:stored_enchantments": {
+        "deathnote:death_note": 1
+      }
+    }
+  }
+}

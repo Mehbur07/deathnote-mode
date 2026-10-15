@@ -2,7 +2,9 @@
 	"required": true,
 	"package": "com.mehbur.deathnote.mixin",
 	"compatibilityLevel": "JAVA_25",
-	"mixins": [],
+	"mixins": [
+		"CrafterBlockMixin"
+	],
 	"injectors": {
 		"defaultRequire": 1
 	},
