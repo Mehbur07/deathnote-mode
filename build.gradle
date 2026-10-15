@@ -26,6 +26,18 @@ loom {
 	}
 }
 
+fabricApi {
+	// Server game tests (src/gametest) run headless as part of `gradlew build`;
+	// the end-to-end client test opens a game window and runs with `gradlew runClientGameTest`.
+	configureTests {
+		createSourceSet = true
+		modId = "deathnote-test"
+		enableGameTests = true
+		enableClientGameTests = true
+		eula = true // Accepted by the project owner for the local game-test server (build/run/gameTest).
+	}
+}
+
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"

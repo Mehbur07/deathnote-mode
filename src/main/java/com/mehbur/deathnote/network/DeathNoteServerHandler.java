@@ -23,6 +23,7 @@ import net.minecraft.world.entity.LightningBolt;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
+import org.jspecify.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,10 +34,22 @@ import java.util.regex.Pattern;
  * Server-side Death Note logic. Every check happens here; the client only shows the screen and sends a name.
  * <p>
  * Order of checks for a {@link WriteNamePayload}:
- * held item → name format → cooldown → XP → target online and alive → self / op protection.
+ * name format → held item → cooldown → XP → target online and alive → self / op protection.
  * Nothing is spent unless the target is actually killed.
  */
 public final class DeathNoteServerHandler {
+	/** Result of a write attempt; everything except {@link #SUCCESS} spends nothing. */
+	public enum Outcome {
+		SUCCESS,
+		INVALID_NAME,
+		NOT_HOLDING,
+		COOLDOWN,
+		NOT_ENOUGH_LEVELS,
+		NOT_FOUND,
+		SELF,
+		PROTECTED
+	}
+
 	private static final Pattern VALID_NAME = Pattern.compile("[A-Za-z0-9_]{1," + WriteNamePayload.MAX_NAME_LENGTH + "}");
 
 	/** Server tick of each player's last successful use. Only touched on the server thread. */
@@ -68,18 +81,36 @@ public final class DeathNoteServerHandler {
 	}
 
 	private static void handleWriteName(MinecraftServer server, ServerPlayer writer, WriteNamePayload payload) {
+		write(server, writer, payload.hand(), payload.name());
+	}
+
+	/**
+	 * Validates the written name, resolves it to an online player and continues with {@link #writeTarget}.
+	 */
+	public static Outcome write(MinecraftServer server, ServerPlayer writer, InteractionHand hand, String rawName) {
+		String name = rawName.trim();
+		if (!VALID_NAME.matcher(name).matches()) {
+			return fail(writer, Outcome.INVALID_NAME, Component.translatable("deathnote.message.invalid_name"));
+		}
+		// getPlayerByName is case-insensitive but requires the exact name.
+		ServerPlayer target = server.getPlayerList().getPlayerByName(name);
+		return writeTarget(server, writer, hand, target, name);
+	}
+
+	/**
+	 * Runs every remaining check against an already resolved target and, if all pass, kills the target
+	 * and charges the writer. Public so game tests can supply the target directly.
+	 *
+	 * @param target      the resolved player, or {@code null} if nobody with that name is online
+	 * @param writtenName the name as written, used in the "player not found" message
+	 */
+	public static Outcome writeTarget(MinecraftServer server, ServerPlayer writer, InteractionHand hand,
+			@Nullable ServerPlayer target, String writtenName) {
 		DeathNoteConfig config = DeathNoteConfig.get();
-		ItemStack stack = writer.getItemInHand(payload.hand());
+		ItemStack stack = writer.getItemInHand(hand);
 
 		if (!DeathNoteItems.isDeathNoteItem(stack) || DeathNoteItems.getUsesRemaining(stack) <= 0) {
-			fail(writer, Component.translatable("deathnote.message.not_holding"));
-			return;
-		}
-
-		String name = payload.name().trim();
-		if (!VALID_NAME.matcher(name).matches()) {
-			fail(writer, Component.translatable("deathnote.message.invalid_name"));
-			return;
+			return fail(writer, Outcome.NOT_HOLDING, Component.translatable("deathnote.message.not_holding"));
 		}
 
 		int now = server.getTickCount();
@@ -87,30 +118,24 @@ public final class DeathNoteServerHandler {
 		Integer lastUse = LAST_USE_TICK.get(writer.getUUID());
 		if (lastUse != null && now - lastUse < cooldownTicks) {
 			int secondsLeft = (int) Math.ceil((cooldownTicks - (now - lastUse)) / 20.0);
-			fail(writer, Component.translatable("deathnote.message.cooldown", secondsLeft));
-			return;
+			return fail(writer, Outcome.COOLDOWN, Component.translatable("deathnote.message.cooldown", secondsLeft));
 		}
 
 		// Creative players pay nothing (no levels, no uses).
 		boolean free = writer.hasInfiniteMaterials();
 		if (!free && writer.experienceLevel < config.xpCost) {
-			fail(writer, Component.translatable("deathnote.message.not_enough_levels", config.xpCost));
-			return;
+			return fail(writer, Outcome.NOT_ENOUGH_LEVELS,
+					Component.translatable("deathnote.message.not_enough_levels", config.xpCost));
 		}
 
-		// getPlayerByName is case-insensitive but requires the exact name.
-		ServerPlayer target = server.getPlayerList().getPlayerByName(name);
 		if (target == null || !target.isAlive()) {
-			fail(writer, Component.translatable("deathnote.message.player_not_found", name));
-			return;
+			return fail(writer, Outcome.NOT_FOUND, Component.translatable("deathnote.message.player_not_found", writtenName));
 		}
 		if (target == writer && !config.allowSelfKill) {
-			fail(writer, Component.translatable("deathnote.message.self"));
-			return;
+			return fail(writer, Outcome.SELF, Component.translatable("deathnote.message.self"));
 		}
 		if (config.protectOps && server.getPlayerList().isOp(target.nameAndId())) {
-			fail(writer, Component.translatable("deathnote.message.protected"));
-			return;
+			return fail(writer, Outcome.PROTECTED, Component.translatable("deathnote.message.protected"));
 		}
 
 		strike(target, config);
@@ -120,8 +145,9 @@ public final class DeathNoteServerHandler {
 
 		if (!free) {
 			writer.giveExperienceLevels(-config.xpCost);
-			consumeUse(writer, payload.hand(), stack);
+			consumeUse(writer, hand, stack);
 		}
+		return Outcome.SUCCESS;
 	}
 
 	/** Summons the lightning bolt and kills the target with the anonymous Death Note damage source. */
@@ -140,7 +166,9 @@ public final class DeathNoteServerHandler {
 		target.hurtServer(level, source, Float.MAX_VALUE);
 
 		// Fallback for states where hurt is refused anyway (e.g. a player who has not finished loading in).
+		// Recording the damage keeps the "killed by the Death Note" message, which comes from the combat tracker.
 		if (!target.isDeadOrDying()) {
+			target.getCombatTracker().recordDamage(source, target.getHealth());
 			target.setHealth(0.0F);
 			target.die(source);
 		}
@@ -159,7 +187,8 @@ public final class DeathNoteServerHandler {
 		writer.sendSystemMessage(Component.translatable("deathnote.message.broken").withStyle(ChatFormatting.GRAY));
 	}
 
-	private static void fail(ServerPlayer player, Component message) {
+	private static Outcome fail(ServerPlayer player, Outcome outcome, Component message) {
 		player.sendSystemMessage(message.copy().withStyle(ChatFormatting.RED));
+		return outcome;
 	}
 }
