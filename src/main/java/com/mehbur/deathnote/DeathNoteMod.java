@@ -1,5 +1,7 @@
 package com.mehbur.deathnote;
 
+import com.mehbur.deathnote.config.DeathNoteConfig;
+import com.mehbur.deathnote.network.DeathNoteServerHandler;
 import com.mehbur.deathnote.registry.ModComponents;
 import com.mehbur.deathnote.registry.ModRecipes;
 import net.fabricmc.api.ModInitializer;
@@ -17,8 +19,10 @@ public final class DeathNoteMod implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		DeathNoteConfig.load();
 		ModComponents.init();
 		ModRecipes.init();
+		DeathNoteServerHandler.register();
 		LOGGER.info("Death Note initialized.");
 	}
 

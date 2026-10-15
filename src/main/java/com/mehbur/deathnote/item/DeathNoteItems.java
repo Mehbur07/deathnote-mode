@@ -15,9 +15,6 @@ import net.minecraft.world.item.Items;
  * No new items are registered; the look and behaviour come entirely from data components.
  */
 public final class DeathNoteItems {
-	/** Default number of uses. Phase 5 replaces this with the value from the config file. */
-	public static final int DEFAULT_MAX_USES = 30;
-
 	/** Item model ids ({@code assets/deathnote/items/*.json}): black notebook and golden quill. */
 	public static final Identifier BOOK_MODEL = DeathNoteMod.id("death_note_book");
 	public static final Identifier QUILL_MODEL = DeathNoteMod.id("death_note_quill");

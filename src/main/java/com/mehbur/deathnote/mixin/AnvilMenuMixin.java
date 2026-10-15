@@ -1,5 +1,6 @@
 package com.mehbur.deathnote.mixin;
 
+import com.mehbur.deathnote.config.DeathNoteConfig;
 import com.mehbur.deathnote.item.DeathNoteAnvilRules;
 import com.mehbur.deathnote.item.DeathNoteItems;
 import net.minecraft.world.entity.player.Inventory;
@@ -51,7 +52,7 @@ public abstract class AnvilMenuMixin extends ItemCombinerMenu {
 					return;
 				}
 				ItemStack styled = result.copyWithCount(1);
-				DeathNoteItems.applyDeathNote(styled, DeathNoteItems.DEFAULT_MAX_USES);
+				DeathNoteItems.applyDeathNote(styled, DeathNoteConfig.get().maxUses);
 				this.resultSlots.setItem(0, styled);
 			}
 			case BLOCK -> {
