@@ -1,4 +1,4 @@
-"""Generates the Death Note pixel-art textures (32x32) and the mod icon (128x128).
+"""Generates the Death Note pixel-art textures (32x32), the mod icon (128x128) and tools/deathnote.ico.
 
 Usage: python -I gen_textures.py <resources_dir> [preview_dir]
 No third-party dependencies: PNGs are encoded with zlib + struct.
@@ -14,6 +14,11 @@ SIZE = 32
 
 def write_png(path, pixels, size):
     """pixels: dict[(x, y)] -> (r, g, b, a); missing pixels are transparent."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(png_bytes(pixels, size))
+
+
+def png_bytes(pixels, size):
     raw = bytearray()
     for y in range(size):
         raw.append(0)  # filter: none
@@ -25,9 +30,43 @@ def write_png(path, pixels, size):
         return struct.pack(">I", len(data)) + body + struct.pack(">I", zlib.crc32(body) & 0xFFFFFFFF)
 
     header = struct.pack(">IIBBBBB", size, size, 8, 6, 0, 0, 0)
-    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(bytes(raw), 9)) + chunk(b"IEND", b"")
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(bytes(raw), 9)) + chunk(b"IEND", b"")
+
+
+def resample(pixels, src_size, dst_size):
+    """Area-average resample (alpha-weighted) for downscaling; nearest neighbour when upscaling."""
+    if dst_size >= src_size:
+        factor = dst_size // src_size
+        return {(x * factor + i, y * factor + j): c for (x, y), c in pixels.items() for i in range(factor) for j in range(factor)}
+    out = {}
+    for ty in range(dst_size):
+        y0, y1 = ty * src_size // dst_size, max(ty * src_size // dst_size + 1, (ty + 1) * src_size // dst_size)
+        for tx in range(dst_size):
+            x0, x1 = tx * src_size // dst_size, max(tx * src_size // dst_size + 1, (tx + 1) * src_size // dst_size)
+            r = g = b = a = 0
+            count = 0
+            for sy in range(y0, y1):
+                for sx in range(x0, x1):
+                    pr, pg, pb, pa = pixels.get((sx, sy), (0, 0, 0, 0))
+                    r, g, b, a = r + pr * pa, g + pg * pa, b + pb * pa, a + pa
+                    count += 1
+            if a > 0:
+                out[(tx, ty)] = (round(r / a), round(g / a), round(b / a), round(a / count))
+    return out
+
+
+def write_ico(path, pixels, src_size, sizes=(16, 24, 32, 48, 64, 128, 256)):
+    """Windows .ico with PNG-compressed entries (supported since Windows Vista)."""
+    images = [(s, png_bytes(resample(pixels, src_size, s), s)) for s in sizes]
+    header = struct.pack("<HHH", 0, 1, len(images))
+    offset = 6 + 16 * len(images)
+    entries, data = b"", b""
+    for s, png in images:
+        dim = 0 if s >= 256 else s  # 0 means 256 in the ICO directory
+        entries += struct.pack("<BBBBHHII", dim, dim, 0, 0, 1, 32, len(png), offset + len(data))
+        data += png
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(png)
+    path.write_bytes(header + entries + data)
 
 
 def hexc(value, alpha=255):
@@ -335,6 +374,8 @@ def main():
     write_png(tex / "death_note_quill.png", quill, SIZE)
     logo = make_logo()
     write_png(resources / "assets" / "deathnote" / "icon.png", logo, LOGO_SIZE)
+    # Windows icon for desktop shortcuts (not packaged in the mod jar).
+    write_ico(Path(__file__).resolve().parent / "deathnote.ico", logo, LOGO_SIZE)
 
     if preview:
         write_png(preview / "book_x8.png", upscale(book, 8), SIZE * 8)
