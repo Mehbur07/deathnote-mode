@@ -31,3 +31,7 @@ secrets.properties
 
 # Local-only helper scripts (contain machine-specific paths)
 local/
+
+# Python bytecode
+__pycache__/
+*.pyc
